@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>1899.12.30 00:00:00.000.772,D:\ВУЗ\ИНФОРМАТИКА И ПРОГРАММИРОВАНИЕ\Лаб.3 - Работа с массивами\PrimaryUnit.pas=C:\Users\Maxim\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>1899.12.30 00:00:00.000.083,=C:\Users\Maxim\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>1899.12.30 00:00:00.000.772,D:\ВУЗ\ИНФОРМАТИКА И ПРОГРАММИРОВАНИЕ\Лаб.3 - Работа с массивами\PrimaryUnit.dfm=C:\Users\Maxim\Documents\Embarcadero\Studio\Projects\Unit1.dfm</Transaction>
+    <Transaction>1899.12.30 00:00:00.000.910,D:\ВУЗ\ИНФОРМАТИКА И ПРОГРАММИРОВАНИЕ\Лаб.3 - Работа с массивами\WorkingWithArrays.dproj=C:\Users\Maxim\Documents\Embarcadero\Studio\Projects\Project1.dproj</Transaction>
+  </Transactions>
+</BorlandProject>

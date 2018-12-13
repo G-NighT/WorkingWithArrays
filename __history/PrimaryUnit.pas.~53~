@@ -1,0 +1,791 @@
+unit PrimaryUnit;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.Grids,
+  Vcl.Buttons, Vcl.ComCtrls, IdMessage, IdBaseComponent, IdComponent,
+  IdTCPConnection, IdTCPClient, IdExplicitTLSClientServerBase, IdMessageClient,
+  IdSMTPBase, IdSMTP, Vcl.ImgList;
+
+type
+  TForm1 = class(TForm)
+    StringGrid1: TStringGrid;
+    Panel1: TPanel;
+    Label1: TLabel;
+    Edit1: TEdit;
+    Edit2: TEdit;
+    Label2: TLabel;
+    Panel2: TPanel;
+    Label3: TLabel;
+    Label4: TLabel;
+    Label5: TLabel;
+    BitBtn1: TBitBtn;
+    BitBtn2: TBitBtn;
+    Label6: TLabel;
+    UpDown1: TUpDown;
+    UpDown2: TUpDown;
+    BitBtn3: TBitBtn;
+    Timer1: TTimer;
+    Panel4: TPanel;
+    Label8: TLabel;
+    BitBtn4: TBitBtn;
+    Edit3: TEdit;
+    UpDown3: TUpDown;
+    StringGrid2: TStringGrid;
+    StringGrid3: TStringGrid;
+    Panel3: TPanel;
+    Label7: TLabel;
+    Label9: TLabel;
+    Edit4: TEdit;
+    CheckBox1: TCheckBox;
+    Label10: TLabel;
+    Memo1: TMemo;
+    BitBtn5: TBitBtn;
+    Label11: TLabel;
+    IdSMTP1: TIdSMTP;
+    BitBtn6: TBitBtn;
+    Label12: TLabel;
+    Panel5: TPanel;
+    StringGrid4: TStringGrid;
+    UpDown4: TUpDown;
+    Edit5: TEdit;
+    Edit6: TEdit;
+    UpDown5: TUpDown;
+    Label13: TLabel;
+    Label14: TLabel;
+    Label15: TLabel;
+    Label16: TLabel;
+    StringGrid5: TStringGrid;
+    Label17: TLabel;
+    Edit7: TEdit;
+    UpDown6: TUpDown;
+    Label18: TLabel;
+    Label19: TLabel;
+    Edit8: TEdit;
+    UpDown7: TUpDown;
+    Label20: TLabel;
+    StringGrid6: TStringGrid;
+    BitBtn7: TBitBtn;
+    Label21: TLabel;
+    BitBtn8: TBitBtn;
+    BitBtn9: TBitBtn;
+    IdMessage1: TIdMessage;
+    Timer2: TTimer;
+    Timer3: TTimer;
+    Edit9: TEdit;
+    procedure FormCreate(Sender: TObject);
+    procedure BitBtn2Click(Sender: TObject);
+    procedure BitBtn1Click(Sender: TObject);
+    procedure Edit1Change(Sender: TObject);
+    procedure Edit2Change(Sender: TObject);
+    procedure BitBtn3Click(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
+    procedure Edit3Change(Sender: TObject);
+    procedure BitBtn4Click(Sender: TObject);
+    procedure CheckBox1Click(Sender: TObject);
+    procedure BitBtn5Click(Sender: TObject);
+    procedure IdMessage1InitializeISO(var VHeaderEncoding: Char;
+      var VCharSet: string);
+    procedure Timer2Timer(Sender: TObject);
+    procedure BitBtn6Click(Sender: TObject);
+    procedure Timer3Timer(Sender: TObject);
+    procedure Edit5Change(Sender: TObject);
+    procedure Edit6Change(Sender: TObject);
+    procedure Edit8Change(Sender: TObject);
+    procedure Edit7Change(Sender: TObject);
+    procedure BitBtn7Click(Sender: TObject);
+    procedure BitBtn8Click(Sender: TObject);
+    procedure BitBtn9Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    Procedure Zapolnenie;
+    Procedure SwapInARRAYS;
+    Procedure SwapInSLAU(n, m:integer);
+    { Public declarations }
+  end;
+
+var
+  Form1             : TForm1;
+
+  N, S, H, R,                                                                   // Переменная для хранения числа столбцов матрицы
+  M,    U, W,                                                                   // Переменная для хранения числа строк матрицы
+  k                 : integer;                                                  // Переменная для хранения значения глобального счётчика
+
+  Gauss,                                                                        // Переменная для определения метода нахождения определителя
+  GoSLAU,
+  GoMULT            : boolean;                                                  // Переменные для определения выполняемой задачи
+
+  Rex               : double;
+
+  A,                                                                            // Динамическое распределение памяти для первого массива
+  B,                                                                            // Динамическое распределение памяти для второго массива
+  MULT1,
+  MULT2,
+  RESMULT           : array of array of double;                                 // Динамическое распределение памяти для массивов, над которыми будут проводиться арифметические операции
+
+  X                 : array [1..20] of double;
+
+implementation
+
+{$R *.dfm}
+
+procedure TForm1.FormCreate(Sender: TObject);
+var
+  i                 : Integer;                                                  // Переменная для хранения значения счётчика компонентов
+begin
+  Form1.ClientHeight:=362;
+  Form1.ClientWidth:=705;
+  StringGrid2.Canvas.Brush.Color:=clRed;
+  Gauss:=false;
+  Zapolnenie;
+  for i:=0 to ComponentCount-1 do
+    if Components[i] is TWinControl then
+      TWinControl(Components[i]).DoubleBuffered:=true;                          // Двойная отрисовка всех найденых компонентов
+end;
+
+procedure TForm1.IdMessage1InitializeISO(var VHeaderEncoding: Char;
+  var VCharSet: string);
+begin
+  VCharSet:=IdMessage1.CharSet;
+end;
+
+procedure TForm1.Edit1Change(Sender: TObject);                                  // Процедура защиты от ввода невозможных значений,
+begin                                                                           // а также заполнения после изменения значения аргументов
+  if (Edit1.Text='') or (Edit1.Text='0') then
+    UpDown2.Position:=1;
+  Zapolnenie;
+end;
+
+procedure TForm1.Edit2Change(Sender: TObject);                                  // Процедура защиты от ввода невозможных значений,
+begin                                                                           // а также заполнения после изменения значения аргументов
+  if (Edit2.Text='') or (Edit2.Text='0') then
+    UpDown1.Position:=1;
+  Zapolnenie;
+end;
+
+procedure TForm1.Edit3Change(Sender: TObject);                                  // Процедура защиты от ввода невозможных значений,
+begin                                                                           // а также заполнения после изменения значения аргументов
+  if (Edit3.Text='') or (Edit3.Text='0') then
+    UpDown1.Position:=1;
+  Zapolnenie;
+end;
+
+procedure TForm1.Edit5Change(Sender: TObject);
+begin
+  if (Edit5.Text='') or (Edit5.Text='0') then
+    UpDown4.Position:=1;
+  Zapolnenie;
+end;
+
+procedure TForm1.Edit6Change(Sender: TObject);
+begin
+  if (Edit6.Text='') or (Edit6.Text='0') then
+    UpDown5.Position:=1;
+  Zapolnenie;
+end;
+
+procedure TForm1.Edit7Change(Sender: TObject);
+begin
+  if (Edit7.Text='') or (Edit7.Text='0') then
+    UpDown6.Position:=1;
+  Zapolnenie;
+end;
+
+procedure TForm1.Edit8Change(Sender: TObject);
+begin
+  if (Edit8.Text='') or (Edit8.Text='0') then
+    UpDown7.Position:=1;
+  Zapolnenie;
+end;
+
+procedure TForm1.Zapolnenie;
+var
+  i,                                                                            // Переменная для хранения локального счётчика, используемого для работы со строками матрицы
+  j                   : integer;                                                // Переменная для хранения локального счётчика, используемого для работы со столбцами матрицы
+begin
+
+  //------------------------Заполнение первой матрицы---------------------------
+  N:=StrToInt(Edit1.Text);                                                      // Определение числа столбцов матрицы
+  M:=StrToInt(Edit2.Text);                                                      // Определение числа строк матрицы
+  SetLength(A,M+1,N+1);                                                         // Установка размерности массива A
+
+  StringGrid1.RowCount:=M+1;                                                    // Установка числа строк таблицы
+  StringGrid1.ColCount:=N+1;                                                    // Установка числа столбцов таблицы
+
+  for i:=1 to M do                                                              // Заполнение шапки таблицы
+    StringGrid1.Cells[0,i]:='Строка '+IntToStr(i);
+  for j:=1 to N do
+    StringGrid1.Cells[j,0]:='Столбец '+IntToStr(j);
+
+  for i:=1 to M do
+    for j:=1 to N do
+      begin
+        StringGrid1.Cells[j,i]:=IntToStr(Random(20)-10);                        // Заполнение строк и столбов матрицы случайными числами в интервале [-10;10]
+        A[i,j]:=StrToFloat(StringGrid1.Cells[j,i]);                             // Заполнения матрицы A элементами
+      end;
+
+  //------------------------Заполнение второй матрицы---------------------------
+  S:=StrToInt(Edit3.Text);
+  StringGrid2.ColCount:=S+2;
+  StringGrid2.RowCount:=S+1;
+
+  SetLength(B,S+1,S+2);                                                         // Установка размерности массива B
+
+  for i:=1 to S+2 do                                                            // Заполнение шапки таблицы
+    StringGrid2.Cells[i,0]:=IntToStr(i);
+  for i:=1 to S+1 do
+    StringGrid2.Cells[0,i]:=IntToStr(i);
+
+  for i:=1 to S do
+    for j:=1 to S+1 do
+      begin
+        StringGrid2.Cells[j,i]:=IntToStr(Random(20)-10);                        // Заполнение второй матрицы случайными числами
+      end;
+
+  StringGrid2.Cells[StringGrid2.ColCount-1,0]:='B';                             // Последний столбец именуется как столбец "B"
+
+  //------------------------Подготовка третьй матрицы---------------------------
+  StringGrid3.ColCount:=S+1;
+
+  for i:=1 to S do
+    StringGrid3.Cells[i,0]:='X('+IntToStr(i)+')';
+
+  StringGrid3.Cells[0,1]:='X(i)';
+
+  //---------------------Заполнение четвертой матрицы---------------------------
+  H:=StrToInt(Edit5.Text);                                                      // Определение числа столбцов матрицы
+  U:=StrToInt(Edit6.Text);                                                      // Определение числа строк матрицы
+  SetLength(MULT1,H+1,U+1);                                                     // Установка размерности массива MULT1
+
+  StringGrid4.ColCount:=H;                                                      // Установка числа столбцов таблицы
+  StringGrid4.RowCount:=U;                                                      // Установка числа строк таблицы
+
+  for i:=0 to H do
+    for j:=0 to U do
+      begin
+        StringGrid4.Cells[j,i]:=IntToStr(Random(20)-10);                        // Заполнение строк и столбов матрицы случайными числами в интервале [-10;10]
+        MULT1[i,j]:=StrToFloat(StringGrid4.Cells[j,i]);                         // Заполнения матрицы MULT1 элементами
+      end;
+
+  //-----------------------Заполнение пятой матрицы-----------------------------
+  R:=StrToInt(Edit8.Text);                                                      // Определение числа столбцов матрицы
+  W:=StrToInt(Edit7.Text);                                                      // Определение числа строк матрицы
+  SetLength(MULT2,R+1,W+1);                                                     // Установка размерности массива MULT2
+
+  StringGrid5.ColCount:=R;                                                      // Установка числа столбцов таблицы
+  StringGrid5.RowCount:=W;                                                      // Установка числа строк таблицы
+
+  for i:=0 to R do
+    for j:=0 to W do
+      begin
+        StringGrid5.Cells[j,i]:=IntToStr(Random(20)-10);                        // Заполнение строк и столбов матрицы случайными числами в интервале [-10;10]
+        MULT2[i,j]:=StrToFloat(StringGrid5.Cells[j,i]);                         // Заполнения матрицы MULT1 элементами
+      end;
+end;
+
+procedure TForm1.SwapInARRAYS;
+var
+  i,                                                                            // Переменная для хранения локального счётчика, используемого для работы со строками матрицы
+  j,                                                                            // Переменная для хранения локального счётчика, используемого для работы со столбцами матрицы
+  NStr                 : integer;                                               // Переменная для хранения номера строки
+  Max,
+  Buffer               : double;                                                // Переменная для временного хранения при перестановке
+begin
+
+  Max:=Abs(A[k,k]);                                                             // Принимаем A[k,k] за самый большой элемент самый большой по модулю
+
+  for i:=k+1 to N do                                                            // Определение номера строки с максимальным по модулю элементом в К-м столбце
+    begin
+      if Max<Abs(A[i,k]) then                                                   // В случае, если текущий максимальный элемент меньше следующего элемента матрицы, выполняется замена
+        begin
+          Max:=Abs(A[i,k]);
+          NStr:=i;                                                              // Номер строки с максимальным элементом фиксируется
+        end;
+    end;
+
+  for j:=k to N do                                                              // Перестановка строк местами
+    begin
+      Buffer:=A[k,j];
+      A[k,j]:= A[NStr,j];
+      A[NStr,j]:=Buffer;
+    end;
+end;
+
+procedure TForm1.SwapInSLAU(n, m: integer);
+var
+  i,                                                                            // Переменная для хранения локального счётчика, используемого для работы со строками матрицы
+  j,                                                                            // Переменная для хранения локального счётчика, используемого для работы со столбцами матрицы
+  NStr                 : integer;                                               // Переменная для хранения номера строки
+  Max,
+  Buffer               : double;                                                // Переменная для временного хранения при перестановке
+begin
+
+  Max:=Abs(B[k,k]);
+
+  for i:=k to n do                                                              // Отыскивание номера максимальной строки
+    begin
+      if Max<Abs(B[i,k]) then
+        begin
+          Max:=Abs(B[i,k]);
+          NStr:=i;
+        end;
+    end;
+
+  for j:=k to m do
+    begin                                                                       // Перестановка строк
+      Buffer:=B[k,j];
+      B[k,j]:=B[NStr,j];
+      B[NStr,j]:=Buffer;
+    end;
+end;
+
+procedure TForm1.Timer1Timer(Sender: TObject);                                  // Процедура анимации движения компонентов
+begin
+  Application.ProcessMessages;
+  case GoSLAU of
+    true: begin
+            while StringGrid1.Top>-345 do                                       // Поднять компоненты вверх
+              begin
+                with Panel1 do
+                  begin
+                    Top:=Top-6;
+                    Enabled:=false;                                             // Защита от использования компонента
+                  end;
+                with Panel2 do
+                  begin
+                    Top:=Top-6;
+                    Enabled:=false;                                             // Защита от использования компонента
+                  end;
+                with Panel4 do
+                  begin
+                    Top:=Top-6;
+                    Enabled:=true;                                              // Допуск к использованию компонента
+                  end;
+                with StringGrid1 do
+                  begin
+                    Top:=Top-6;
+                    Enabled:=false;                                             // Защита от использования компонента
+                  end;
+                with BitBtn3 do
+                  begin
+                    Caption:='Вернуться к матрицам';
+                    Glyph.LoadFromFile('arrowup.bmp');
+                  end;
+                with BitBtn6 do
+                  begin
+                    Visible:=false;
+                  end;
+                with label12 do
+                  begin
+                    Visible:=false;
+                  end;
+              end;
+          end;
+    false: begin
+             while StringGrid1.Top<8 do                                         // Опустить компоненты вниз
+               begin
+                 with Panel1 do
+                  begin
+                    Top:=Top+6;
+                    Enabled:=true;                                              // Защита от использования компонента
+                  end;
+                with Panel2 do
+                  begin
+                    Top:=Top+6;
+                    Enabled:=true;                                              // Защита от использования компонента
+                  end;
+                with Panel4 do
+                  begin
+                    Top:=Top+6;
+                    Enabled:=false;                                             // Защита от использования компонента
+                  end;
+                with StringGrid1 do
+                  begin
+                    Top:=Top+6;
+                    Enabled:=true;                                              // Защита от использования компонента
+                  end;
+                with BitBtn3 do
+                  begin
+                    Caption:='Вернуться к матрицам';
+                    Glyph.LoadFromFile('arrowdown.bmp');
+                  end;
+                with BitBtn6 do
+                  begin
+                    Visible:=true;
+                  end;
+                with label12 do
+                  begin
+                    Visible:=true;
+                  end;
+               end;
+           end;
+  end;
+end;
+
+procedure TForm1.Timer2Timer(Sender: TObject);
+begin
+  if idsmtp1.Connected=false then
+    begin
+      label11.Caption:='Соединение было установлено';
+      label11.Font.Color:=clMaroon;
+    end
+  else
+    begin
+      label11.Caption:='Соединение было потеряно';
+      label11.Font.Color:=clGreen;
+    end
+end;
+
+procedure TForm1.Timer3Timer(Sender: TObject);
+begin
+  Application.ProcessMessages;
+  case GoMULT of
+    true: begin
+            while Panel5.Left>2 do                                              // Передвинуть компоненты влево
+              begin
+                with Panel5 do
+                  begin
+                    Left:=Left-8;
+                    Enabled:=true;                                              // Допуск к использованию компонента
+                  end;
+                with Panel1 do
+                  begin
+                    Left:=Left-8;
+                    Enabled:=false;                                             // Защита от использования компонента
+                  end;
+                with Panel2 do
+                  begin
+                    Left:=Left-8;
+                    Enabled:=false;                                             // Защита от использования компонента
+                  end;
+                with StringGrid1 do
+                  begin
+                    Left:=Left-8;
+                    Enabled:=false;                                             // Защита от использования компонента
+                  end;
+                with BitBtn3 do
+                  begin
+                    Visible:=false;
+                  end;
+                with Label12 do
+                  begin
+                    Visible:=false;
+                  end;
+                with BitBtn6 do
+                  begin
+                    Glyph.LoadFromFile('arrowleft.bmp');
+                  end;
+              end;
+          end;
+    false: begin
+             while Panel5.Left<714 do                                           // Передвинуть компоненты вправо
+               begin
+                with Panel5 do
+                  begin
+                    Left:=Left+8;
+                    Enabled:=false;                                             // Защита от использования компонента
+                  end;
+                with Panel1 do
+                  begin
+                    Left:=Left+8;
+                    Enabled:=true;                                              // Допуск к использованию компонента
+                  end;
+                with Panel2 do
+                  begin
+                    Left:=Left+8;
+                    Enabled:=true;                                              // Допуск к использованию компонента
+                  end;
+                with StringGrid1 do
+                  begin
+                    Left:=Left+8;
+                    Enabled:=true;                                              // Допуск к использованию компонента
+                  end;
+                with BitBtn3 do
+                  begin
+                    Visible:=true;
+                  end;
+                with Label12 do
+                  begin
+                    Visible:=true;
+                  end;
+                with BitBtn6 do
+                  begin
+                    Glyph.LoadFromFile('arrowright.bmp');
+                  end;
+               end;
+           end;
+  end;
+end;
+
+procedure TForm1.BitBtn1Click(Sender: TObject);
+var
+  i,                                                                            // Переменная для хранения локального счётчика, используемого для работы со строками матрицы
+  j                   : integer;                                                // Переменная для хранения локального счётчика, используемого для работы со столбцами матрицы
+  Mn                  : double;                                                 // Переменная для хранения значения множителя
+begin
+
+  Gauss:=true;
+
+  for k:=1 to M-1 do
+    begin                                                                       // Определение номера ведущего уравнения
+      for i:=k+1 to M do
+        begin                                                                   // Определение номера обрабатываемого уравнения
+          if A[k,k]=0 then
+            SwapInARRAYS;                                                       // Перемещение на k-ю строку строки с максимальным значением A[k,k]
+          Mn:=A[i,k]/A[k,k];
+          A[i,k]:=0;
+          for j:=k+1 to N do                                                    // Формирование новых значений элементов массива в обрабатываемой строке
+            begin
+              A[i,j]:=A[i,j]-Mn*A[k,j];
+            end;
+        end;
+    end;
+
+  for i:=1 to M do                                                              // Заполнение строк и столбов таблицы значениями A[i,j] не равными 0
+    for j:=1 to N do
+      begin
+        if A[i,j]<>0 then
+          StringGrid1.Cells[j,i]:=FloatToStrF(A[i,j],ffFixed,13,4)
+        else
+          StringGrid1.Cells[j,i]:='0';
+      end;
+end;
+
+procedure TForm1.BitBtn2Click(Sender: TObject);
+var
+  i,                                                                            // Переменная для хранения локального счётчика, используемого для работы со строками матрицы
+  j                   : integer;                                                // Переменная для хранения локального счётчика, используемого для работы со столбцами матрицы
+  Det                 : double;
+begin
+
+  Label6.Visible:=true;
+
+  if (StrToInt(Edit1.Text)=2) and (StrToInt(Edit2.Text)=2) then
+    begin
+      Det:=(StrToFloat(StringGrid1.Cells[1,1])*
+            StrToFloat(StringGrid1.Cells[2,2]))-
+           (StrToFloat(StringGrid1.Cells[1,2])*
+            StrToFloat(StringGrid1.Cells[2,1]));
+      Label6.Caption:='Значение определителя: '+FloatToStrF(Det,ffFixed,13,4);
+    end
+  else
+    if (StrToInt(Edit1.Text)=3) and (StrToInt(Edit2.Text)=3) then
+      begin
+        Det:=(StrToFloat(StringGrid1.Cells[1,1])*
+              StrToFloat(StringGrid1.Cells[2,2])*
+              StrToFloat(StringGrid1.Cells[3,3]))+
+            (StrToFloat(StringGrid1.Cells[1,2])*
+              StrToFloat(StringGrid1.Cells[2,3])*
+              StrToFloat(StringGrid1.Cells[3,1]))+
+            (StrToFloat(StringGrid1.Cells[1,3])*
+              StrToFloat(StringGrid1.Cells[2,1])*
+              StrToFloat(StringGrid1.Cells[3,2]))-
+            (StrToFloat(StringGrid1.Cells[1,3])*
+              StrToFloat(StringGrid1.Cells[2,2])*
+              StrToFloat(StringGrid1.Cells[3,1]))-
+            (StrToFloat(StringGrid1.Cells[1,2])*
+              StrToFloat(StringGrid1.Cells[2,1])*
+              StrToFloat(StringGrid1.Cells[3,3]))-
+            (StrToFloat(StringGrid1.Cells[1,1])*
+              StrToFloat(StringGrid1.Cells[2,3])*
+              StrToFloat(StringGrid1.Cells[3,2]));
+        Label6.Caption:='Значение определителя: '+FloatToStrF(Det,ffFixed,13,4);
+      end
+    else
+      begin
+        Gauss:=true;
+      end;
+  if Gauss=true then
+    begin
+      BitBtn1Click(Sender);                                                     // Сперва необходимо привести матрицу к треугольному виду
+      Det:=1;
+      for i:=1 to N do
+        Det:=Det*StrToFloat(StringGrid1.Cells[i,i]);
+      Label6.Caption:='Значение определителя: '+FloatToStrF(Det,ffFixed,13,4);
+    end;
+end;
+
+procedure TForm1.BitBtn3Click(Sender: TObject);
+begin
+  case GoSLAU of
+    true: begin
+            GoSLAU:=false;
+          end;
+    false: begin
+             GoSLAU:=true;
+           end;
+  end;
+  Timer1.Enabled:=true;
+end;
+
+procedure TForm1.BitBtn4Click(Sender: TObject);
+var
+  i,
+  j                   : integer;
+  Mn                  : double;
+begin
+
+  for i:=1 to S do
+    for j:=1 to S+1 do
+      B[i,j]:=StrToFloat(StringGrid2.Cells[j,i]);                               // Формирование матрицы B[i,j]
+
+  //------------------------Приведение матрицы к треугольному виду--------------
+  for k:=1 to S-1 do                                                            // Определение ведущего уравнения
+    begin
+      for i:=k+1 to S do                                                        // Определение обрабатываемого уравнения
+        begin
+          if B[k,k]=0 then
+            begin
+              SwapInSLAU(S,S+1);                                                // Выполняется перестановка
+            end;
+          Mn:=B[i,k]/B[k,k];
+          for j:=k to S+1 do
+            B[i,j]:=B[i,j]-Mn*B[k,j];
+        end;
+    end;
+
+  //---------------------------Обратный ход. Нахождение X[i]--------------------
+  X[S]:=B[S,S+1]/B[S,S];
+
+  for i:=S-1 downto 1 do
+    begin
+      Rex:=0;
+      for j:=i+1 to S do
+        Rex:=Rex+B[i,j]*X[j];
+      X[i]:=(B[i,S+1]-Rex)/B[i,i];
+  end;
+
+  StringGrid2.ColCount:=S+2;                                                    // Вывод результатов
+  StringGrid3.Cells[0,1]:='X(i)';
+  for i:=1 to S do
+    StringGrid3.Cells[i,0]:='X('+IntToStr(i)+')';
+  for i:=1 to S do
+    StringGrid3.Cells[i,1]:=FloatToStrF(X[i],ffFixed, 10, 3);
+
+end;
+
+procedure TForm1.BitBtn5Click(Sender: TObject);
+begin
+  idsmtp1.Host:='smtp.rambler.ru';                                              // Подключение к Рамблеру
+  idsmtp1.Port:=25;
+  idsmtp1.Username:='maksim-minligareev';
+  idsmtp1.Password:='popidol123';
+
+  idMessage1.Body.Text:=Memo1.Text;                                             // Заполнение формы отправки
+  idMessage1.From.Text:='maksim-minligareev@rambler.ru';
+  idMessage1.Recipients.EMailAddresses:='m-a_a130@mail.ru';
+  IdMessage1.Subject:=AnsiToUTF8(Edit4.Text);
+
+  idsmtp1.Connect();                                                            // Соединение с сервером
+  if idsmtp1.Connected=true then
+    begin
+      label11.Caption:='Соединение было установлено';
+      label11.Font.Color:=clGreen;
+      idsmtp1.Send(idMessage1);                                                 // Отправка сообщения
+      idsmtp1.Disconnect;                                                       // Разъединение с сервером
+    end;
+end;
+
+procedure TForm1.BitBtn6Click(Sender: TObject);
+begin
+  case GoMULT of
+    true: begin
+            GoMULT:=false;
+          end;
+    false: begin
+             GoMULT:=true;
+           end;
+  end;
+  Timer3.Enabled:=true;
+end;
+
+procedure TForm1.BitBtn7Click(Sender: TObject);                                 // Умножение первой матрицы на вторую
+var
+  i,                                                                            // Переменная для хранения локального счётчика, используемого для работы со строками матрицы
+  j,                                                                            // Переменная для хранения локального счётчика, используемого для работы со столбцами матрицы
+  k,
+  l                  : integer;
+  s                  : real;
+begin
+
+  if StringGrid4.ColCount=StringGrid5.RowCount then
+    begin
+      StringGrid6.RowCount:=StringGrid4.RowCount;
+      StringGrid6.ColCount:=StringGrid5.ColCount;
+      SetLength(RESMULT,StringGrid6.RowCount+1,StringGrid6.ColCount+1);
+
+      for i:=0 to StringGrid6.RowCount do
+        for j:=0 to StringGrid6.ColCount do
+          begin
+            s:=0;
+            for k:=0 to StringGrid6.ColCount do
+              s:=s+MULT1[i,k]*MULT2[k,j];                                       // ОТЫСКАТЬ "ЧЕРВЯ"
+            RESMULT[i,j]:=s;
+          end;
+
+      for i:=0 to StringGrid6.RowCount do                                       // В данном блока был онаружен баг.
+        for j:=0 to StringGrid6.ColCount do                                     // Способом "лечения" стало расширение адресного пространства.
+          begin
+            StringGrid6.Cells[j,i]:=FloatTostr(RESMULT[i,j]);
+          end;
+    end
+  else
+    begin
+      ShowMessage('Количество столбцов 1-ой матрицы не равно '+
+                  'количеству строк 2-ой матрицы');
+    end;
+end;
+
+procedure TForm1.BitBtn8Click(Sender: TObject);
+var
+  i,                                                                            // Переменная для хранения локального счётчика, используемого для работы со строками матрицы
+  j                   : integer;                                                // Переменная для хранения локального счётчика, используемого для работы со столбцами матрицы
+begin
+  if (StringGrid4.ColCount=StringGrid5.ColCount) and
+     (StringGrid4.RowCount=StringGrid5.RowCount) then
+        begin
+          StringGrid6.RowCount:=StringGrid4.RowCount;
+          StringGrid6.ColCount:=StringGrid5.ColCount;
+
+          for i:=0 to StringGrid6.RowCount do
+            for j:=0 to StringGrid6.RowCount do
+              StringGrid6.Cells[j,i]:=FloatToStr(MULT1[i,j]+MULT2[i,j]);
+        end
+  else
+    begin
+      ShowMessage('Количество строк и столбцов обеих матриц не совпадает');
+    end;
+end;
+
+procedure TForm1.BitBtn9Click(Sender: TObject);
+begin
+  if Edit9.Text<>'' then
+    begin
+
+    end
+  else
+    begin
+      ShowMessage('Необходимо ввести константу, '+
+                  'на которую будет помножена первая матрица');
+    end;
+end;
+
+procedure TForm1.CheckBox1Click(Sender: TObject);
+begin
+  if CheckBox1.Checked=true then
+    begin
+      Edit4.Text:='';
+      Edit4.Enabled:=false;
+      Edit4.Text:='Without theme'
+    end
+  else
+    begin
+      Edit4.Text:='Cooperation';
+      Edit4.Enabled:=true;
+    end;
+end;
+
+end.
